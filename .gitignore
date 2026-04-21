@@ -1,0 +1,196 @@
+# =============================================================================
+# EasyTrip — .gitignore
+# Covers: React Native + Expo, Node.js, TypeScript, Docker, Terraform, macOS
+# =============================================================================
+
+# ── Secrets & Environment ──────────────────────────────────────────────────────
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+.env.test
+server/.env
+server/.env.*
+!.env.example
+!server/.env.example
+
+# Apple/Google service account keys (never commit)
+google-service-account.json
+AuthKey_*.p8
+*.mobileprovision
+*.p12
+*.cer
+*.certSigningRequest
+
+# ── Node.js ────────────────────────────────────────────────────────────────────
+node_modules/
+server/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+.yarn-integrity
+package-lock.json.bak
+
+# Build outputs
+dist/
+build/
+server/dist/
+server/build/
+*.tsbuildinfo
+.cache/
+
+# Coverage
+coverage/
+server/coverage/
+*.lcov
+.nyc_output/
+
+# ── React Native & Expo ────────────────────────────────────────────────────────
+# Expo
+.expo/
+.expo-shared/
+web-build/
+dist/
+
+# React Native
+*.jks
+*.keystore
+!debug.keystore
+*.p8
+*.ipa
+
+# Android
+android/
+!android/.gitkeep
+
+# iOS
+ios/
+!ios/.gitkeep
+
+# CocoaPods
+Pods/
+*.xcworkspace
+!default.xcworkspace
+
+# Metro bundler
+.metro-health-check*
+metro.config.js.bak
+
+# Watchman
+.watchmanconfig
+
+# Flipper
+flipper-logs/
+
+# EAS
+.eas/
+eas-build-post-install.sh
+eas-update-metadata.json
+
+# ── TypeScript ─────────────────────────────────────────────────────────────────
+*.js.map
+*.d.ts.map
+tsconfig.tsbuildinfo
+
+# ── Docker ─────────────────────────────────────────────────────────────────────
+.docker/
+docker-compose.override.yml
+*.dockerignore
+
+# ── Terraform ──────────────────────────────────────────────────────────────────
+infra/terraform/.terraform/
+infra/terraform/.terraform.lock.hcl
+infra/terraform/terraform.tfstate
+infra/terraform/terraform.tfstate.backup
+infra/terraform/terraform.tfvars
+infra/terraform/*.auto.tfvars
+infra/terraform/.terraform.tfstate
+infra/terraform/override.tf
+infra/terraform/override.tf.json
+infra/terraform/*_override.tf
+infra/terraform/*_override.tf.json
+infra/terraform/crash.log
+
+# ── AWS ────────────────────────────────────────────────────────────────────────
+.aws/
+aws-exports.js
+
+# ── Databases ──────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+drizzle/migrations/*.bak
+
+# ── Editor & IDE ───────────────────────────────────────────────────────────────
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+.editorconfig.bak
+
+# ── macOS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.AppleDouble
+.LSOverride
+Icon
+Desktop.ini
+
+# ── Linux ──────────────────────────────────────────────────────────────────────
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ── Windows ────────────────────────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ── Testing ────────────────────────────────────────────────────────────────────
+.jest-cache/
+test-results/
+playwright-report/
+playwright/.cache/
+e2e/artifacts/
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+logs/
+*.log
+caddy-data/
+caddy-config/
+
+# ── Misc ───────────────────────────────────────────────────────────────────────
+.tmp/
+tmp/
+temp/
+.turbo/
+.vercel
+.netlify
+*.tgz
+*.zip
+*.tar.gz

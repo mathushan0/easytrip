@@ -1,0 +1,275 @@
+version: '3.9'
+
+# EasyTrip Production Stack
+# Used for local production simulation and as reference for ECS task definitions.
+# In real production, each service runs as a separate ECS task definition.
+# 
+# Usage:
+#   docker compose -f infra/docker-compose.prod.yml up -d
+#   docker compose -f infra/docker-compose.prod.yml down
+
+x-logging: &default-logging
+  driver: awslogs
+  options:
+    awslogs-group: /easytrip/production
+    awslogs-region: eu-west-1
+    awslogs-stream-prefix: easytrip
+
+x-common-env: &common-env
+  NODE_ENV: production
+  LOG_LEVEL: info
+
+networks:
+  easytrip-internal:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+
+services:
+  # ── API Server ──────────────────────────────────────────────────────────────
+  api:
+    image: ${ECR_REGISTRY}/easytrip-api:${IMAGE_TAG:-prod-latest}
+    container_name: easytrip-api
+    restart: unless-stopped
+    networks:
+      - easytrip-internal
+    ports:
+      - "3000:3000"
+    environment:
+      <<: *common-env
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      GOOGLE_TRANSLATE_API_KEY: ${GOOGLE_TRANSLATE_API_KEY}
+      GOOGLE_CLOUD_VISION_API_KEY: ${GOOGLE_CLOUD_VISION_API_KEY}
+      GOOGLE_CLOUD_TTS_API_KEY: ${GOOGLE_CLOUD_TTS_API_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_PRICE_VOYAGER_LIFETIME: ${STRIPE_PRICE_VOYAGER_LIFETIME}
+      STRIPE_PRICE_PRO_MONTHLY: ${STRIPE_PRICE_PRO_MONTHLY}
+      STRIPE_PRICE_PRO_ANNUAL: ${STRIPE_PRICE_PRO_ANNUAL}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      AWS_REGION: ${AWS_REGION:-eu-west-1}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      CLOUDFRONT_DOMAIN: ${CLOUDFRONT_DOMAIN}
+      SENTRY_DSN: ${SENTRY_DSN}
+      OPEN_EXCHANGE_RATES_APP_ID: ${OPEN_EXCHANGE_RATES_APP_ID}
+      OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY}
+      PROMPT_VERSION: ${PROMPT_VERSION:-v1.0}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://easytrip.app}
+      LIBRETRANSLATE_URL: ${LIBRETRANSLATE_URL:-http://libretranslate:5000}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+
+  # ── Social Intelligence Worker ──────────────────────────────────────────────
+  social-agent:
+    image: ${ECR_REGISTRY}/easytrip-social-agent:${IMAGE_TAG:-prod-latest}
+    container_name: easytrip-social-agent
+    restart: unless-stopped
+    networks:
+      - easytrip-internal
+    environment:
+      <<: *common-env
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID}
+      REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET}
+      SENTRY_DSN: ${SENTRY_DSN}
+      # Playwright settings
+      PLAYWRIGHT_HEADLESS: "true"
+      PLAYWRIGHT_TIMEOUT: "30000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  # ── BullMQ Worker (itinerary generation queue) ──────────────────────────────
+  worker:
+    image: ${ECR_REGISTRY}/easytrip-api:${IMAGE_TAG:-prod-latest}
+    container_name: easytrip-worker
+    restart: unless-stopped
+    networks:
+      - easytrip-internal
+    command: ["node", "dist/worker.js"]
+    environment:
+      <<: *common-env
+      WORKER_MODE: "true"
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      GOOGLE_CLOUD_VISION_API_KEY: ${GOOGLE_CLOUD_VISION_API_KEY}
+      GOOGLE_CLOUD_TTS_API_KEY: ${GOOGLE_CLOUD_TTS_API_KEY}
+      AWS_REGION: ${AWS_REGION:-eu-west-1}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      CLOUDFRONT_DOMAIN: ${CLOUDFRONT_DOMAIN}
+      SENTRY_DSN: ${SENTRY_DSN}
+      OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY}
+      PROMPT_VERSION: ${PROMPT_VERSION:-v1.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+
+  # ── LibreTranslate (translation fallback) ───────────────────────────────────
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    container_name: easytrip-libretranslate
+    restart: unless-stopped
+    networks:
+      - easytrip-internal
+    environment:
+      LT_DISABLE_WEB_UI: "true"
+      LT_API_KEYS: "false"
+      LT_LOAD_ONLY: "en,fr,de,es,it,pt,ja,ko,zh,ar,ru,nl,pl,sv,tr"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ── PostgreSQL (local dev / staging only — use RDS in production) ───────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: easytrip-postgres
+    restart: unless-stopped
+    networks:
+      - easytrip-internal
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: easytrip
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d easytrip"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    profiles:
+      - local  # Only starts with: docker compose --profile local up
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ── Redis (local dev / staging only — use ElastiCache in production) ─────────
+  redis:
+    image: redis:7-alpine
+    container_name: easytrip-redis
+    restart: unless-stopped
+    networks:
+      - easytrip-internal
+    volumes:
+      - redis-data:/data
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - local
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ── Caddy (reverse proxy — for local prod simulation) ───────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: easytrip-caddy
+    restart: unless-stopped
+    networks:
+      - easytrip-internal
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+    profiles:
+      - local

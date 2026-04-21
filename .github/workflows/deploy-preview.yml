@@ -1,0 +1,126 @@
+name: Deploy Preview (TestFlight + Internal Track)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'App.tsx'
+      - 'app.json'
+      - 'eas.json'
+      - 'package.json'
+      - '.github/workflows/deploy-preview.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-preview
+  cancel-in-progress: false
+
+jobs:
+  build-and-submit:
+    name: EAS Build + Submit (Preview)
+    runs-on: ubuntu-latest
+    environment: preview
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Expo + EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build iOS (preview profile → TestFlight)
+        id: ios-build
+        run: |
+          BUILD_ID=$(eas build \
+            --platform ios \
+            --profile preview \
+            --non-interactive \
+            --json \
+            --no-wait | jq -r '.id')
+          echo "ios_build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+          echo "Submitted iOS build: $BUILD_ID"
+          eas build:wait --id $BUILD_ID
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+
+      - name: Submit iOS to TestFlight
+        run: |
+          eas submit \
+            --platform ios \
+            --profile preview \
+            --non-interactive \
+            --latest
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+
+      - name: Build Android (preview profile → Internal test track)
+        id: android-build
+        run: |
+          BUILD_ID=$(eas build \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --json \
+            --no-wait | jq -r '.id')
+          echo "android_build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+          eas build:wait --id $BUILD_ID
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit Android to Internal Test Track
+        run: |
+          eas submit \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --latest
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_GOOGLE_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+  # OTA update for JS-only changes (faster delivery to existing testers)
+  ota-update:
+    name: EAS Update (OTA)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Expo + EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish OTA update to preview channel
+        run: |
+          eas update \
+            --branch preview \
+            --message "OTA: ${{ github.sha }}" \
+            --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
