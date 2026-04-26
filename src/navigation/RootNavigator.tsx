@@ -14,6 +14,10 @@ const OnboardingScreen = React.lazy(() =>
 );
 
 import { TabNavigator } from './TabNavigator';
+import { SplashScreen } from '@screens/SplashScreen';
+import { ConsentScreen } from '@screens/ConsentScreen';
+import { SignInScreen } from '@screens/SignInScreen';
+import { ProfileSetupScreen } from '@screens/ProfileSetupScreen';
 
 // ─── Placeholder screens for Run 1 ───────────────────────────────────────────
 
@@ -55,13 +59,16 @@ export function RootNavigator(): React.ReactElement {
         {!isAuthenticated ? (
           // Auth screens
           <Stack.Group>
-            <Stack.Screen name="Onboarding" component={PlaceholderScreen} />
-            <Stack.Screen name="SignIn" component={PlaceholderScreen} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="Consent" component={ConsentScreen} />
+            <Stack.Screen name="SignIn" component={SignInScreen} />
             <Stack.Screen name="SignUp" component={PlaceholderScreen} />
+            <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
           </Stack.Group>
         ) : (
           // Authenticated screens
           <Stack.Group>
+            <Stack.Screen name="Splash" component={SplashScreen} />
             <Stack.Screen name="Main" component={TabNavigator} />
           </Stack.Group>
         )}

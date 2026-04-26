@@ -18,6 +18,12 @@ export interface User {
   tierExpiresAt: string | null; // ISO date string
   preferredCurrency: string;
   preferredLanguage: string;
+  /** Alias used during profile setup (maps to preferredCurrency) */
+  homeCurrency?: string;
+  /** Alias used during profile setup */
+  languages?: string[];
+  /** Whether first-run profile setup has been completed */
+  profileSetupDone?: boolean;
   theme: ThemeName;
   categoryColours: Partial<CategoryColours> | null;
   totalTrips: number;
@@ -466,9 +472,12 @@ export interface ThemeContextType {
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
 export type RootStackParamList = {
+  Splash: undefined;
   Onboarding: undefined;
+  Consent: undefined;
   SignIn: undefined;
   SignUp: undefined;
+  ProfileSetup: undefined;
   Main: undefined;
 };
 
