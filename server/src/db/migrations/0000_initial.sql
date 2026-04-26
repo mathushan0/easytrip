@@ -431,3 +431,91 @@ INSERT INTO achievements (id, name, description, icon, tier_required) VALUES
   ('five_trips', 'Seasoned Traveller', 'Created 5 trips', '🧳', 'voyager'),
   ('pro_user', 'Nomad Pro', 'Upgraded to Nomad Pro', '⭐', 'nomad_pro')
 ON CONFLICT (id) DO NOTHING;
+
+-- ── GDPR: User Consents ─────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS user_consents (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  consent_analytics BOOLEAN NOT NULL DEFAULT FALSE,
+  consent_crash_reporting BOOLEAN NOT NULL DEFAULT FALSE,
+  consent_push_notifications BOOLEAN NOT NULL DEFAULT FALSE,
+  consent_given_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  consent_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  consent_version TEXT NOT NULL DEFAULT '1.0'
+);
+
+-- ── GDPR: Data Deletion Requests ────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS data_deletion_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL, -- intentionally no FK (user may already be deleted)
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  completed_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'processing', 'completed', 'failed'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_data_deletion_requests_user_id ON data_deletion_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_data_deletion_requests_status ON data_deletion_requests(status);
+
+-- ── GDPR: Data Retention Log ────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS data_retention_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  record_type TEXT NOT NULL,
+  record_id TEXT NOT NULL,
+  deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deletion_reason TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_data_retention_log_deleted_at ON data_retention_log(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_data_retention_log_record_type ON data_retention_log(record_type);
+
+-- ── Device Tokens ───────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS device_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  platform TEXT NOT NULL CHECK (platform IN ('ios', 'android')),
+  registered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (token)
+);
+
+CREATE INDEX IF NOT EXISTS idx_device_tokens_user_id ON device_tokens(user_id);
+
+-- ── Dismissed Venues ────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS dismissed_venues (
+  trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+  dismissed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (trip_id, venue_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dismissed_venues_trip_id ON dismissed_venues(trip_id);
+
+-- ── User Favourites ─────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS user_favourites (
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+  saved_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, venue_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_favourites_user_id ON user_favourites(user_id);
+
+-- ── Community Tips ──────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS community_tips (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tip_text TEXT NOT NULL,
+  approved BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_community_tips_venue_id ON community_tips(venue_id);
+CREATE INDEX IF NOT EXISTS idx_community_tips_user_id ON community_tips(user_id);

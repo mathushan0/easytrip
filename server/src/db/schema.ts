@@ -522,3 +522,116 @@ export const aiConversationsRelations = relations(aiConversations, ({ one, many 
   user: one(users, { fields: [aiConversations.userId], references: [users.id] }),
   messages: many(aiMessages),
 }));
+
+// ── GDPR: User Consents ───────────────────────────────────────────────────────
+
+export const userConsents = pgTable('user_consents', {
+  userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  consentAnalytics: boolean('consent_analytics').notNull().default(false),
+  consentCrashReporting: boolean('consent_crash_reporting').notNull().default(false),
+  consentPushNotifications: boolean('consent_push_notifications').notNull().default(false),
+  consentGivenAt: timestamp('consent_given_at', { withTimezone: true }).notNull().defaultNow(),
+  consentUpdatedAt: timestamp('consent_updated_at', { withTimezone: true }).notNull().defaultNow(),
+  consentVersion: text('consent_version').notNull().default('1.0'),
+});
+
+// ── GDPR: Data Deletion Requests ──────────────────────────────────────────────
+
+export const dataDeletionRequests = pgTable(
+  'data_deletion_requests',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid('user_id').notNull(), // not FK — user may already be deleted
+    requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    status: text('status', { enum: ['pending', 'processing', 'completed', 'failed'] })
+      .notNull()
+      .default('pending'),
+  },
+  (t) => ({
+    userIdx: index('idx_data_deletion_requests_user_id').on(t.userId),
+    statusIdx: index('idx_data_deletion_requests_status').on(t.status),
+  }),
+);
+
+// ── GDPR: Data Retention Log ──────────────────────────────────────────────────
+
+export const dataRetentionLog = pgTable(
+  'data_retention_log',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    recordType: text('record_type').notNull(),
+    recordId: text('record_id').notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }).notNull().defaultNow(),
+    deletionReason: text('deletion_reason').notNull(),
+  },
+  (t) => ({
+    deletedAtIdx: index('idx_data_retention_log_deleted_at').on(t.deletedAt),
+    recordTypeIdx: index('idx_data_retention_log_record_type').on(t.recordType),
+  }),
+);
+
+// ── Device Tokens (Push Notifications) ───────────────────────────────────────
+
+export const deviceTokens = pgTable(
+  'device_tokens',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    token: text('token').notNull(),
+    platform: text('platform', { enum: ['ios', 'android'] }).notNull(),
+    registeredAt: timestamp('registered_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userIdx: index('idx_device_tokens_user_id').on(t.userId),
+    tokenUniq: uniqueIndex('uq_device_tokens_token').on(t.token),
+  }),
+);
+
+// ── Dismissed Venues ──────────────────────────────────────────────────────────
+
+export const dismissedVenues = pgTable(
+  'dismissed_venues',
+  {
+    tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
+    venueId: uuid('venue_id').notNull().references(() => venues.id, { onDelete: 'cascade' }),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.tripId, t.venueId] }),
+    tripIdx: index('idx_dismissed_venues_trip_id').on(t.tripId),
+  }),
+);
+
+// ── User Favourites ───────────────────────────────────────────────────────────
+
+export const userFavourites = pgTable(
+  'user_favourites',
+  {
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    venueId: uuid('venue_id').notNull().references(() => venues.id, { onDelete: 'cascade' }),
+    savedAt: timestamp('saved_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.venueId] }),
+    userIdx: index('idx_user_favourites_user_id').on(t.userId),
+  }),
+);
+
+// ── Community Tips ────────────────────────────────────────────────────────────
+
+export const communityTips = pgTable(
+  'community_tips',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    venueId: uuid('venue_id').notNull().references(() => venues.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    tipText: text('tip_text').notNull(),
+    approved: boolean('approved').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    venueIdx: index('idx_community_tips_venue_id').on(t.venueId),
+    userIdx: index('idx_community_tips_user_id').on(t.userId),
+  }),
+);
