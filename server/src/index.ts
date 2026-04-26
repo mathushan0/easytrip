@@ -19,7 +19,7 @@ import { tripsRoutes } from './routes/trips.js';
 import { userRoutes } from './routes/user.js';
 import { itineraryRoutes } from './routes/itinerary.js';
 import { budgetRoutes } from './routes/budget.js';
-import { venueRoutes } from './routes/venues.js';
+import { venuesRoutes } from './routes/venues.js';
 import { foodRoutes } from './routes/food.js';
 import { transportRoutes } from './routes/transport.js';
 import { translatorRoutes } from './routes/translator.js';
@@ -145,7 +145,7 @@ async function build() {
   await fastify.register(userRoutes, { prefix: API_PREFIX });
   await fastify.register(itineraryRoutes, { prefix: API_PREFIX });
   await fastify.register(budgetRoutes, { prefix: API_PREFIX });
-  await fastify.register(venueRoutes, { prefix: API_PREFIX });
+  await fastify.register(venuesRoutes, { prefix: API_PREFIX });
   await fastify.register(foodRoutes, { prefix: API_PREFIX });
   await fastify.register(transportRoutes, { prefix: API_PREFIX });
   await fastify.register(translatorRoutes, { prefix: API_PREFIX });
