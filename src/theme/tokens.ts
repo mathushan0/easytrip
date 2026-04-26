@@ -303,10 +303,78 @@ const DARK_LIGHT: ThemeTokens = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BUBBLY — Default free theme
+// Light, playful, coral + sky blue palette. Fredoka + Nunito fonts.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BUBBLY: ThemeTokens = {
+  ...CONSTANTS,
+
+  bg_primary:      '#FFFAF7',
+  bg_surface:      '#FFFFFF',
+  bg_raised:       '#FFF3EE',
+  bg_glass:        'rgba(255,250,247,0.85)',
+  bg_glass_border: 'rgba(0,0,0,0.08)',
+
+  text_primary:    '#1A1A2E',
+  text_secondary:  '#6B6B8A',
+  text_disabled:   '#B8B8CC',
+  text_inverse:    '#FFFFFF',
+
+  brand_lime:      '#FFD93D',
+  brand_cyan:      '#56CCF2',
+  brand_coral:     '#FF6B6B',
+  brand_gold:      '#FFD93D',
+  brand_violet:    '#C7A7FF',
+
+  category_food:          '#FF6B6B',
+  category_landmark:      '#C7A7FF',
+  category_transport:     '#56CCF2',
+  category_culture:       '#C7A7FF',
+  category_budget:        '#FFD93D',
+  category_accommodation: '#56CCF2',
+  category_general:       '#6B6B8A',
+
+  gradient_primary:   ['#FF6B6B', '#C7A7FF'],
+  gradient_hero:      ['rgba(255,250,247,0)', 'rgba(255,250,247,0.9)'],
+  gradient_cta:       ['#FF6B6B', '#56CCF2'],
+
+  interactive_primary:  '#FF6B6B',
+  interactive_hover:    '#FF8E8E',
+  interactive_pressed:  '#E55555',
+  interactive_ghost:    'rgba(255,107,107,0.10)',
+
+  border_default:   'rgba(26,26,46,0.12)',
+  border_focus:     'rgba(255,107,107,0.5)',
+  border_error:     'rgba(255,59,59,0.5)',
+  border_success:   'rgba(78,205,196,0.5)',
+
+  system_success:   '#4ECDC4',
+  system_warning:   '#FFD93D',
+  system_error:     '#FF3B3B',
+  system_info:      '#56CCF2',
+
+  font_display:     'Fredoka_700Bold',
+  font_serif:       'Fredoka_600SemiBold',
+  font_body:        'Nunito_600SemiBold',
+  font_body_medium: 'Nunito_700Bold',
+  font_mono:        'Nunito_800ExtraBold',
+
+  glass_opacity:    0.85,
+  grain_opacity:    0.02,
+  shadow_card:      '0 4px 0 rgba(26,26,46,0.15)',
+  shadow_modal:     '0 8px 32px rgba(26,26,46,0.15)',
+  blur_glass:       8,
+
+  map_style_id: 'STANDARD_MAP',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // THEME MAP
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const THEMES: Record<ThemeName, ThemeTokens> = {
+  bubbly: BUBBLY,
   dark_light: DARK_LIGHT,
   aurora_dark: AURORA_DARK,
   warm_sand: WARM_SAND,
@@ -317,9 +385,9 @@ export const THEMES: Record<ThemeName, ThemeTokens> = {
 export const PAID_THEMES: ThemeName[] = ['aurora_dark', 'warm_sand', 'electric'];
 
 /** Themes available to free (Explorer) users */
-export const FREE_THEMES: ThemeName[] = ['dark_light'];
+export const FREE_THEMES: ThemeName[] = ['bubbly', 'dark_light'];
 
-export const DEFAULT_THEME: ThemeName = 'dark_light';
+export const DEFAULT_THEME: ThemeName = 'bubbly';
 
 /** Returns true if theme requires Voyager or higher */
 export function isPaidTheme(themeName: ThemeName): boolean {

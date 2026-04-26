@@ -6,7 +6,7 @@
 
 export type UserTier = 'explorer' | 'voyager' | 'nomad_pro';
 export type TierSource = 'stripe' | 'apple_iap' | 'google_iap' | 'manual';
-export type ThemeName = 'dark_light' | 'aurora_dark' | 'warm_sand' | 'electric';
+export type ThemeName = 'bubbly' | 'dark_light' | 'aurora_dark' | 'warm_sand' | 'electric';
 
 export interface User {
   id: string;
