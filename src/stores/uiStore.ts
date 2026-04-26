@@ -100,3 +100,55 @@ export const useUpsellState = () =>
   useUiStore((s) => ({ visible: s.upsellVisible, feature: s.upsellFeature }));
 export const useShowToast = () => useUiStore((s) => s.showToast);
 export const useShowUpsell = () => useUiStore((s) => s.showUpsell);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSENT STORE
+// Lightweight store for user consent choices (analytics, crash, push)
+// Written during ConsentScreen; persisted to MMKV + synced to backend
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { create } from 'zustand';
+import { MMKV } from 'react-native-mmkv';
+
+const consentStorage = new MMKV({ id: 'consent-storage' });
+const CONSENT_KEY = 'user_consent';
+
+export interface ConsentChoices {
+  analytics: boolean;
+  crashReports: boolean;
+  pushNotifications: boolean;
+}
+
+interface ConsentState {
+  consent: ConsentChoices | null;
+  hasShownConsentScreen: boolean;
+  setConsent: (choices: ConsentChoices) => void;
+  markConsentShown: () => void;
+}
+
+function loadConsent(): ConsentChoices | null {
+  const raw = consentStorage.getString(CONSENT_KEY);
+  if (raw) {
+    try {
+      return JSON.parse(raw) as ConsentChoices;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+export const useConsentStore = create<ConsentState>((set) => ({
+  consent: loadConsent(),
+  hasShownConsentScreen: consentStorage.getBoolean('consent_shown') ?? false,
+
+  setConsent: (choices) => {
+    consentStorage.set(CONSENT_KEY, JSON.stringify(choices));
+    set({ consent: choices });
+  },
+
+  markConsentShown: () => {
+    consentStorage.set('consent_shown', true);
+    set({ hasShownConsentScreen: true });
+  },
+}));
