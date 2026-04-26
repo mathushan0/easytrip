@@ -27,6 +27,8 @@ import { socialRoutes } from './routes/social.js';
 import { subscriptionRoutes } from './routes/subscription.js';
 import { aiAssistantRoutes } from './routes/ai-assistant.js';
 import { iapRoutes } from './routes/iap.js';
+import { authRoutes } from './routes/auth.js';
+import { gdprRoutes } from './routes/gdpr.js';
 
 const fastify = Fastify({
   logger: {
@@ -151,6 +153,8 @@ async function build() {
   await fastify.register(subscriptionRoutes, { prefix: API_PREFIX });
   await fastify.register(aiAssistantRoutes, { prefix: API_PREFIX });
   await fastify.register(iapRoutes, { prefix: API_PREFIX });
+  await fastify.register(authRoutes, { prefix: API_PREFIX });
+  await fastify.register(gdprRoutes, { prefix: API_PREFIX });
 
   // ── Global error handler ─────────────────────────────────────────────────────
   fastify.setErrorHandler((err, request, reply) => {
