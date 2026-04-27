@@ -44,6 +44,12 @@ This installs dependencies, copies env files, starts local Docker services, runs
 
 ---
 
+## Setup Guides
+
+- **[macOS Developer Setup](MACOS-SETUP.md)** — Complete step-by-step guide for macOS (Big Sur+): prerequisites, Node.js/nvm, frontend/backend setup, database configuration, authentication, development workflow, and troubleshooting.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
