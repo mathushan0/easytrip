@@ -1,8 +1,32 @@
 import { create } from 'zustand';
-import { MMKV } from 'react-native-mmkv';
 import type { User, UserTier, Entitlements } from '@/types';
 
-const storage = new MMKV({ id: 'user-storage' });
+// Web-compatible localStorage wrapper
+class LocalStorage {
+  private prefix = 'easytrip:';
+  
+  get(key: string): string | null {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(this.prefix + key);
+  }
+  
+  set(key: string, value: string): void {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(this.prefix + key, value);
+  }
+  
+  delete(key: string): void {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem(this.prefix + key);
+  }
+  
+  getString(key: string): string | undefined {
+    const value = this.get(key);
+    return value ?? undefined;
+  }
+}
+
+const storage = new LocalStorage();
 const USER_KEY = 'current_user';
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -44,6 +68,7 @@ interface UserState {
   clearAuth: () => void;
   updateUser: (updates: Partial<User>) => void;
   setLoading: (loading: boolean) => void;
+  fetchUser: () => Promise<void>;
 }
 
 function loadUser(): User | null {
@@ -111,6 +136,17 @@ export const useUserStore = create<UserState>((set) => {
     },
 
     setLoading: (loading) => set({ isLoading: loading }),
+    
+    fetchUser: async () => {
+      const storedUser = loadUser();
+      if (storedUser) {
+        set({
+          user: storedUser,
+          entitlements: computeEntitlements(storedUser.tier),
+          isAuthenticated: true,
+        });
+      }
+    },
   };
 });
 
